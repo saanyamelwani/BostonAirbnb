@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import pydeck as pdk
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Load the dataset
 @st.cache_data
@@ -32,26 +33,26 @@ if selected_neighborhood == "All":
     avg_prices = data.groupby("neighbourhood")["price"].mean().sort_values()
     st.subheader("Bar Chart of Average Prices")
     fig, ax = plt.subplots()
-    avg_prices.plot(kind="bar", ax=ax, color="skyblue")
+    sns.barplot(x=avg_prices.index, y=avg_prices.values, ax=ax, palette="Blues_d")
     ax.set_title("Average Prices by Neighborhood")
     ax.set_ylabel("Average Price ($)")
+    ax.set_xticklabels(avg_prices.index, rotation=45, ha="right")
     st.pyplot(fig)
 else:
     avg_price = data[data["neighbourhood"] == selected_neighborhood]["price"].mean()
     st.write(f"Average price in {selected_neighborhood}: ${avg_price:.2f}")
 
-# Query 2: Apartments Under a Specific Price
-st.header("2. Find Apartments Under a Specific Price")
-price_limit = st.sidebar.slider("Set Maximum Price", min_value=int(data["price"].min()), max_value=int(data["price"].max()), value=100)
+# Query 2: Airbnbs Under $300 a Night
+st.header("2. Find Airbnbs Under $300 a Night")
 selected_neighborhood_2 = st.sidebar.selectbox("Select Neighborhood for Price Filter", ["All"] + list(data["neighbourhood"].unique()), key="price_neighborhood")
 
 if selected_neighborhood_2 == "All":
-    filtered_data = data[data["price"] <= price_limit]
+    filtered_data = data[data["price"] <= 300]
 else:
-    filtered_data = data[(data["price"] <= price_limit) & (data["neighbourhood"] == selected_neighborhood_2)]
-st.subheader(f"Histogram of Prices Under ${price_limit}")
+    filtered_data = data[(data["price"] <= 300) & (data["neighbourhood"] == selected_neighborhood_2)]
+st.subheader("Histogram of Prices Under $300")
 fig, ax = plt.subplots()
-filtered_data["price"].plot(kind="hist", bins=20, ax=ax, color="orange", edgecolor="black")
+sns.histplot(filtered_data["price"], bins=20, ax=ax, color="orange", kde=True, edgecolor="black")
 ax.set_title("Price Distribution")
 ax.set_xlabel("Price ($)")
 ax.set_ylabel("Count")
@@ -68,9 +69,10 @@ else:
 
 st.subheader(f"Price Variation by Room Type in {selected_neighborhood_3}")
 fig, ax = plt.subplots()
-price_by_room_type.plot(kind="bar", ax=ax, color="green")
+sns.barplot(x=price_by_room_type.index, y=price_by_room_type.values, ax=ax, palette="Greens_d")
 ax.set_title(f"Average Price by Room Type in {selected_neighborhood_3}")
 ax.set_ylabel("Average Price ($)")
+ax.set_xticklabels(price_by_room_type.index, rotation=45, ha="right")
 st.pyplot(fig)
 
 # Query 4: Interactive Map with Price Data
