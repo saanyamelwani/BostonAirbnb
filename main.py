@@ -1,3 +1,14 @@
+"""
+Name: Saanya Melwani
+CS230: Section 3
+Data: Boston Airbnb Data
+URL: https://bostonairbnb-wymrtxxs7yoxbhvaxdecgf.streamlit.app/ 
+Description: 
+This program analyzes Boston Airbnb data to assist people planning to visit Boston. 
+It provides insights into rental trends, pricing, and availability, helping users find the best options for their stay. 
+The program leverages Python's capabilities to create interactive visualizations and perform geographic and statistical analysis, 
+making it a useful tool for travelers seeking the perfect Airbnb in Boston.
+"""
 import streamlit as st
 import pandas as pd
 import pydeck as pdk
