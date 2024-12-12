@@ -18,8 +18,8 @@ st.markdown("""
 This application helps you explore Airbnb data in Boston. You can analyze:
 1. Average listing prices by neighborhood.
 2. Apartments under a specific price in a selected neighborhood.
-3. Highly rated Airbnbs in different neighborhoods.
-4. Interactive map of affordable or highly rated Airbnbs.
+3. How prices vary based on room type in a neighborhood.
+4. Interactive map of Airbnbs by price and room type.
 """)
 
 # Sidebar for user inputs
@@ -57,48 +57,52 @@ ax.set_xlabel("Price ($)")
 ax.set_ylabel("Count")
 st.pyplot(fig)
 
-# Query 3: Highly Rated Airbnbs
-st.header("3. Highly Rated Airbnbs")
-min_rating = st.sidebar.slider("Set Minimum Rating", min_value=0, max_value=5, value=4, step=1)
-selected_neighborhood_3 = st.sidebar.selectbox("Select Neighborhood for Ratings", ["All"] + list(data["neighbourhood"].unique()), key="rating_neighborhood")
+# Query 3: How Does the Price Vary Based on Room Type?
+st.header("3. How Does the Price Vary Based on Room Type?")
+selected_neighborhood_3 = st.sidebar.selectbox("Select Neighborhood for Room Type Analysis", ["All"] + list(data["neighbourhood"].unique()), key="room_type_neighborhood")
 
-if "review_scores_rating" in data.columns:
-    if selected_neighborhood_3 == "All":
-        rated_data = data[data["review_scores_rating"] >= min_rating]
-    else:
-        rated_data = data[(data["review_scores_rating"] >= min_rating) & (data["neighbourhood"] == selected_neighborhood_3)]
-    
-    st.subheader("Scatter Plot of Ratings")
-    fig, ax = plt.subplots()
-    ax.scatter(rated_data["price"], rated_data["review_scores_rating"], alpha=0.6, c="purple")
-    ax.set_title("Ratings vs Price")
-    ax.set_xlabel("Price ($)")
-    ax.set_ylabel("Rating")
-    st.pyplot(fig)
+if selected_neighborhood_3 == "All":
+    price_by_room_type = data.groupby("room_type")["price"].mean().sort_values()
 else:
-    st.error("The dataset does not contain a 'review_scores_rating' column. Displaying price data instead.")
-    
-    # Fallback: Display price data in a scatter plot
-    st.subheader("Scatter Plot of Prices")
-    fig, ax = plt.subplots()
-    ax.scatter(range(len(data)), data["price"], alpha=0.6, c="purple")
-    ax.set_title("Prices")
-    ax.set_xlabel("Index")
-    ax.set_ylabel("Price ($)")
-    st.pyplot(fig)
+    price_by_room_type = data[data["neighbourhood"] == selected_neighborhood_3].groupby("room_type")["price"].mean().sort_values()
 
-# Query 4: Interactive Map
-st.header("4. Interactive Map of Airbnbs")
+st.subheader(f"Price Variation by Room Type in {selected_neighborhood_3}")
+fig, ax = plt.subplots()
+price_by_room_type.plot(kind="bar", ax=ax, color="green")
+ax.set_title(f"Average Price by Room Type in {selected_neighborhood_3}")
+ax.set_ylabel("Average Price ($)")
+st.pyplot(fig)
+
+# Query 4: Interactive Map with Price Data
+st.header("4. Interactive Map of Airbnbs by Price")
 price_filter = st.sidebar.slider("Set Price Range for Map", min_value=int(data["price"].min()), max_value=int(data["price"].max()), value=(50, 300), step=10)
-rating_filter = st.sidebar.slider("Set Rating Range for Map", min_value=0, max_value=5, value=(3, 5), step=1)
+room_type_filter = st.sidebar.multiselect("Select Room Types for Map", data["room_type"].unique(), default=data["room_type"].unique())
 
-if "review_scores_rating" in data.columns:
-    map_data = data[(data["price"] >= price_filter[0]) & (data["price"] <= price_filter[1]) &
-                    (data["review_scores_rating"] >= rating_filter[0]) & (data["review_scores_rating"] <= rating_filter[1])]
-    st.map(map_data)
+# Filter data
+map_data = data[(data["price"] >= price_filter[0]) & (data["price"] <= price_filter[1]) & (data["room_type"].isin(room_type_filter))]
+
+if not map_data.empty:
+    # Use PyDeck for enhanced interactivity
+    st.pydeck_chart(pdk.Deck(
+        map_style="mapbox://styles/mapbox/streets-v11",
+        initial_view_state=pdk.ViewState(
+            latitude=map_data["latitude"].mean(),
+            longitude=map_data["longitude"].mean(),
+            zoom=11,
+            pitch=50,
+        ),
+        layers=[
+            pdk.Layer(
+                "ScatterplotLayer",
+                data=map_data,
+                get_position=["longitude", "latitude"],
+                get_color="[200, 30, 0, 160]",  # Red with some transparency
+                get_radius=200,
+                pickable=True,
+                tooltip=True,
+            )
+        ],
+        tooltip={"html": "<b>Price:</b> {price}<br><b>Room Type:</b> {room_type}<br><b>Neighborhood:</b> {neighbourhood}"}
+    ))
 else:
-    st.error("The dataset does not contain a 'review_scores_rating' column. Displaying price data instead.")
-    
-    # Fallback: Display price data on the map
-    map_data = data[(data["price"] >= price_filter[0]) & (data["price"] <= price_filter[1])]
-    st.map(map_data)
+    st.error("No data available for the selected filters.")
