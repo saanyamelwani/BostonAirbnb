@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 # Load the dataset
 @st.cache_data
 def load_data():
+    # Ensure your CSV files are correctly named and uploaded to the repository
     listings = pd.read_csv("listings.csv")
     return listings
 
@@ -38,6 +39,7 @@ if selected_neighborhood == "All":
 else:
     avg_price = data[data["neighbourhood"] == selected_neighborhood]["price"].mean()
     st.write(f"Average price in {selected_neighborhood}: ${avg_price:.2f}")
+
 # Query 2: Apartments Under a Specific Price
 st.header("2. Find Apartments Under a Specific Price")
 price_limit = st.sidebar.slider("Set Maximum Price", min_value=int(data["price"].min()), max_value=int(data["price"].max()), value=100)
@@ -85,4 +87,4 @@ if "review_scores_rating" in data.columns:
                     (data["review_scores_rating"] >= rating_filter[0]) & (data["review_scores_rating"] <= rating_filter[1])]
     st.map(map_data)
 else:
-    st.error("The dataset does not contain a 'review_scores_rating' column.")
+    st.error("The dataset does not contain a 'review_scores_rating' column.")
