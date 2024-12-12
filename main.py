@@ -61,12 +61,13 @@ st.pyplot(fig)
 st.header("3. Highly Rated Airbnbs")
 min_rating = st.sidebar.slider("Set Minimum Rating", min_value=0, max_value=5, value=4, step=1)
 selected_neighborhood_3 = st.sidebar.selectbox("Select Neighborhood for Ratings", ["All"] + list(data["neighbourhood"].unique()), key="rating_neighborhood")
+
 if "review_scores_rating" in data.columns:
     if selected_neighborhood_3 == "All":
         rated_data = data[data["review_scores_rating"] >= min_rating]
     else:
         rated_data = data[(data["review_scores_rating"] >= min_rating) & (data["neighbourhood"] == selected_neighborhood_3)]
-
+    
     st.subheader("Scatter Plot of Ratings")
     fig, ax = plt.subplots()
     ax.scatter(rated_data["price"], rated_data["review_scores_rating"], alpha=0.6, c="purple")
@@ -75,7 +76,16 @@ if "review_scores_rating" in data.columns:
     ax.set_ylabel("Rating")
     st.pyplot(fig)
 else:
-    st.error("The dataset does not contain a 'review_scores_rating' column.")
+    st.error("The dataset does not contain a 'review_scores_rating' column. Displaying price data instead.")
+    
+    # Fallback: Display price data in a scatter plot
+    st.subheader("Scatter Plot of Prices")
+    fig, ax = plt.subplots()
+    ax.scatter(data["price"], alpha=0.6, c="purple")
+    ax.set_title("Prices")
+    ax.set_xlabel("Index")
+    ax.set_ylabel("Price ($)")
+    st.pyplot(fig)
 
 # Query 4: Interactive Map
 st.header("4. Interactive Map of Airbnbs")
@@ -87,4 +97,8 @@ if "review_scores_rating" in data.columns:
                     (data["review_scores_rating"] >= rating_filter[0]) & (data["review_scores_rating"] <= rating_filter[1])]
     st.map(map_data)
 else:
-    st.error("The dataset does not contain a 'review_scores_rating' column.")
+    st.error("The dataset does not contain a 'review_scores_rating' column. Displaying price data instead.")
+    
+    # Fallback: Display price data on the map
+    map_data = data[(data["price"] >= price_filter[0]) & (data["price"] <= price_filter[1])]
+    st.map(map_data)
