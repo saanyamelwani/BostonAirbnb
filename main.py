@@ -7,11 +7,31 @@ import seaborn as sns
 # Load the dataset
 @st.cache_data
 def load_data():
-    # Ensure your CSV files are correctly named and uploaded to the repository
-    listings = pd.read_csv("listings.csv")
-    return listings
+    try:
+        listings = pd.read_csv("listings.csv")
+        return listings
+    except FileNotFoundError:
+        st.error("The dataset file was not found. Please upload it and try again.")
+        return pd.DataFrame()
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+        return pd.DataFrame()
 
 data = load_data()
+
+# Helper function: Plot bar chart
+def plot_bar_chart(data, x_col, y_col, title, palette="Blues_d"):
+    fig, ax = plt.subplots()
+    sns.barplot(x=data[x_col], y=data[y_col], ax=ax, palette=palette)
+    ax.set_title(title)
+    ax.set_xticklabels(data[x_col], rotation=45, ha="right")
+    st.pyplot(fig)
+
+# Helper function: Compute summary statistics
+def compute_summary(data, column):
+    mean = data[column].mean()
+    median = data[column].median()
+    return mean, median
 
 # Title and introduction
 st.title("Boston Airbnb Data Explorer")
@@ -30,14 +50,9 @@ st.sidebar.title("Filters")
 st.header("1. Average Listing Price by Neighborhood")
 selected_neighborhood = st.sidebar.selectbox("Select Neighborhood", ["All"] + list(data["neighbourhood"].unique()))
 if selected_neighborhood == "All":
-    avg_prices = data.groupby("neighbourhood")["price"].mean().sort_values()
+    avg_prices = data.groupby("neighbourhood")["price"].mean().sort_values().reset_index()
     st.subheader("Bar Chart of Average Prices")
-    fig, ax = plt.subplots()
-    sns.barplot(x=avg_prices.index, y=avg_prices.values, ax=ax, palette="Blues_d")
-    ax.set_title("Average Prices by Neighborhood")
-    ax.set_ylabel("Average Price ($)")
-    ax.set_xticklabels(avg_prices.index, rotation=45, ha="right")
-    st.pyplot(fig)
+    plot_bar_chart(avg_prices, "neighbourhood", "price", "Average Prices by Neighborhood")
 else:
     avg_price = data[data["neighbourhood"] == selected_neighborhood]["price"].mean()
     st.write(f"Average price in {selected_neighborhood}: ${avg_price:.2f}")
@@ -63,17 +78,12 @@ st.header("3. How Does the Price Vary Based on Room Type?")
 selected_neighborhood_3 = st.sidebar.selectbox("Select Neighborhood for Room Type Analysis", ["All"] + list(data["neighbourhood"].unique()), key="room_type_neighborhood")
 
 if selected_neighborhood_3 == "All":
-    price_by_room_type = data.groupby("room_type")["price"].mean().sort_values()
+    price_by_room_type = data.groupby("room_type")["price"].mean().sort_values().reset_index()
 else:
-    price_by_room_type = data[data["neighbourhood"] == selected_neighborhood_3].groupby("room_type")["price"].mean().sort_values()
+    price_by_room_type = data[data["neighbourhood"] == selected_neighborhood_3].groupby("room_type")["price"].mean().sort_values().reset_index()
 
 st.subheader(f"Price Variation by Room Type in {selected_neighborhood_3}")
-fig, ax = plt.subplots()
-sns.barplot(x=price_by_room_type.index, y=price_by_room_type.values, ax=ax, palette="Greens_d")
-ax.set_title(f"Average Price by Room Type in {selected_neighborhood_3}")
-ax.set_ylabel("Average Price ($)")
-ax.set_xticklabels(price_by_room_type.index, rotation=45, ha="right")
-st.pyplot(fig)
+plot_bar_chart(price_by_room_type, "room_type", "price", f"Average Price by Room Type in {selected_neighborhood_3}", palette="Greens_d")
 
 # Query 4: Interactive Map with Price Data
 st.header("4. Interactive Map of Airbnbs by Price")
@@ -84,9 +94,8 @@ room_type_filter = st.sidebar.multiselect("Select Room Types for Map", data["roo
 map_data = data[(data["price"] >= price_filter[0]) & (data["price"] <= price_filter[1]) & (data["room_type"].isin(room_type_filter))]
 
 if not map_data.empty:
-    # Use PyDeck for enhanced interactivity
     st.pydeck_chart(pdk.Deck(
-        map_style="mapbox://styles/mapbox/streets-v11",
+        map_style="mapbox://styles/mapbox/light-v9",
         initial_view_state=pdk.ViewState(
             latitude=map_data["latitude"].mean(),
             longitude=map_data["longitude"].mean(),
@@ -98,13 +107,16 @@ if not map_data.empty:
                 "ScatterplotLayer",
                 data=map_data,
                 get_position=["longitude", "latitude"],
-                get_color="[200, 30, 0, 160]",  # Red with some transparency
+                get_color="[200, price * 2, 50, 160]",  # Dynamic color based on price
                 get_radius=200,
                 pickable=True,
-                tooltip=True,
             )
         ],
-        tooltip={"html": "<b>Price:</b> {price}<br><b>Room Type:</b> {room_type}<br><b>Neighborhood:</b> {neighbourhood}"}
+        tooltip={"html": "<b>Price:</b> ${price}<br><b>Room Type:</b> {room_type}"}
     ))
 else:
     st.error("No data available for the selected filters.")
+
+# Compute and display summary statistics for price
+mean_price, median_price = compute_summary(data, "price")
+st.write(f"Mean Price: ${mean_price:.2f}, Median Price: ${median_price:.2f}")
