@@ -2,7 +2,7 @@
 Name: Saanya Melwani
 CS230: Section 3
 Data: Boston Airbnb Data
-URL: https://bostonairbnb-wymrtxxs7yoxbhvaxdecgf.streamlit.app/ 
+URL: https://github.com/saanyamelwani/BostonAirbnb.git
 Description: 
 This program analyzes Boston Airbnb data to assist people planning to visit Boston. 
 It provides insights into rental trends, pricing, and availability, helping users find the best options for their stay. 
